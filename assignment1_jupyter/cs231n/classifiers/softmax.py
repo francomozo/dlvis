@@ -33,7 +33,31 @@ def softmax_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = np.dot(X, W) # matriz NxC
+
+    num_train = X.shape[0]
+    num_classes = W.shape[1]
+
+    for i in range(num_train):
+
+        s = scores[i] - np.max(scores[i]) # para estabilidad numerica
+
+        softmax = np.exp(s)/np.sum(np.exp(s))
+
+        loss -= np.log(softmax[y[i]])
+
+        # calculo el gradiente
+        for j in range(num_classes):
+            dW[:,j] += X[i] * softmax[j]
+
+        dW[:,y[i]] -= X[i]
+
+    loss /= num_train
+    dW /= num_train
+
+    # terminos de regularizacion
+    loss += reg * np.sum(W * W)
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -58,7 +82,28 @@ def softmax_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = np.dot(X, W) # matriz NxC
+
+    num_train = X.shape[0]
+    num_classes = W.shape[1]
+
+    scores -= np.max(scores, axis=1, keepdims=1)  # para estabilidad numerica
+
+    softmax_matrix = np.exp(scores)/np.sum(np.exp(scores), axis=1, keepdims=1)
+
+    loss = -np.sum(np.log(softmax_matrix[np.arange(num_train), y]))
+
+    # gradiente:
+    softmax_matrix[np.arange(num_train),y] -= 1
+
+    dW = np.dot(np.transpose(X), softmax_matrix)
+
+
+    loss /= num_train
+    dW /= num_train
+
+    loss += reg * np.sum(W * W)
+    dW += reg * 2 * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
