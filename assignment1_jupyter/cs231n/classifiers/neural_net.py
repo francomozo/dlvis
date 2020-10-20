@@ -80,7 +80,13 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # propagacion hacia adelante:
+
+        afin1 = np.dot(X, W1) + b1 # fully connected
+
+        activation1 = np.maximum(0, afin1) # relu usando Numpy
+
+        scores = np.dot(activation1, W2) + b2 # fully connected
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +104,18 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # modifico levemente el codigo implementado en softmax.py
+
+        scores -= np.max(scores, axis=1, keepdims=1)  # para estabilidad numerica
+
+        softmax_matrix = np.exp(scores)/np.sum(np.exp(scores), axis=1, keepdims=1)
+
+        loss = -np.sum(np.log(softmax_matrix[np.arange(N), y]))
+
+        loss /= N
+
+        # agrego el termino de regularizacion
+        loss += reg * (np.sum(W1 * W1) + np.sum( W2 * W2 ))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,7 +128,28 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        softmax_matrix[np.arange(N),y] -= 1
+        softmax_matrix /= N
+
+        # gradiente W2
+        dW2 = np.dot(np.transpose(activation1), softmax_matrix)
+
+        # gradiente b2
+        db2 = softmax_matrix.sum(axis=0)
+
+        # gradiente W1
+        dact1 = np.dot(softmax_matrix, np.transpose(W2))
+        dact1[activation1 == 0] = 0
+        dW1 = np.dot(np.transpose(X), dact1)
+
+        # gradiente b1
+        db1 = np.sum(dact1, axis=0)
+
+
+        dW1 += reg * 2 * W1
+        dW2 += reg * 2 * W2
+
+        grads = {'W1':dW1, 'b1':db1, 'W2':dW2, 'b2':db2}
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -156,7 +194,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            idxs = np.random.choice(num_train, batch_size, replace=True)
+
+            X_batch = X[idxs]
+            y_batch = y[idxs]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +213,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b1'] -= learning_rate * grads['b1']
+            self.params['b2'] -= learning_rate * grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +262,15 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # activacion forward al igual que en "loss"
+
+        afin1 = np.dot(X, self.params['W1']) + self.params['b1'] # fully connected
+
+        activation1 = np.maximum(0, afin1) # relu usando Numpy
+
+        scores = np.dot(activation1, self.params['W2']) + self.params['b2'] # fully connected
+
+        y_pred = np.argmax(scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
