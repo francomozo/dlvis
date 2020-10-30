@@ -133,7 +133,7 @@ class TwoLayerNet(object):
 
         dX, dW1, db1 = affine_relu_backward(dscores, cache1)
 
-
+        # regularizacion L2
         grads['W1'] = dW1 + self.reg * W1
         grads['b1'] = db1
 
@@ -218,7 +218,28 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # concateno dims de toda la red para evitar los casos de los bordes en el
+        # loop
+        layers_dims = np.concatenate(([input_dim], hidden_dims, [num_classes]))
+
+        for layer in range(self.num_layers):
+            self.params['W' + str(layer+1)] = np.random.randn(layers_dims[layer],
+                                                layers_dims[layer+1])*weight_scale
+            self.params['b' + str(layer+1)] = np.zeros(layers_dims[layer+1])
+
+        '''
+        self.params['W1'] = np.random.randn(input_dim, hidden_dims[0])*weight_scale
+        self.params['b1'] = np.zeros(hidden_dims[0])
+
+        for layer, current_dim in enumerate(hidden_dims, start=1):
+            # caso ultima capa hacia la salida
+            if layer + 1 > len(hidden_dims):
+                self.params['W' + str(layer+1)] = np.random.randn(hidden_dims[layer-1], num_classes)*weight_scale
+                self.params['b' + str(layer+1)] = np.zeros(num_classes)
+            else:
+                self.params['W' + str(layer+1)] = np.random.randn(current_dim, hidden_dims[layer])*weight_scale
+                self.params['b' + str(layer+1)] = np.zeros(hidden_dims[layer])
+        '''
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -280,7 +301,21 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        caches = {}
+
+        # iteraciones en la capas ocultas
+        for layer in range(self.num_layers - 1):
+            # unpack de los pesos de la capa
+            W = self.params['W' + str(layer+1)]
+            b = self.params['b' + str(layer+1)]
+
+            X, caches[layer+1] = affine_relu_forward(X, W, b)
+
+        # capa de salida
+        W = self.params['W' + str(self.num_layers)]
+        b = self.params['b' + str(self.num_layers)]
+
+        scores, caches[self.num_layers] = affine_forward(X, W, b)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -307,7 +342,27 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dout = softmax_loss(scores, y)
+
+        # agrego regularizacion L2 iterando para todos los W
+        loss += 0.5 * self.reg * np.sum([np.sum(np.square(W)) for _, W in
+                                                    self.params.items()])
+
+
+        dscores, dW, db = affine_backward(dout, caches[self.num_layers])
+        grads['W' + str(self.num_layers)] = dW + self.reg * self.params[
+                                                        'W' + str(self.num_layers)]
+        grads['b' + str(self.num_layers)] = db
+
+
+        for layer in range(self.num_layers - 2, -1, -1):
+
+            dscores, dW , db = affine_relu_backward(dscores, caches[layer+1])
+
+            grads['W' + str(layer+1)] = dW + self.reg * self.params[
+                                                        'W' + str(layer+1)]
+            grads['b' + str(layer+1)] = db
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
