@@ -312,13 +312,16 @@ class FullyConnectedNet(object):
             else:
                 X, caches[layer+1] = affine_relu_forward(X, W, b)
 
+            if self.use_dropout:
+                X, caches['dropout' + str(layer+1)] = dropout_forward(X, 
+                                                            self.dropout_param)
 
         # capa de salida
         W = self.params['W' + str(self.num_layers)]
         b = self.params['b' + str(self.num_layers)]
 
         scores, caches[self.num_layers] = affine_forward(X, W, b)
-
+        
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -360,6 +363,10 @@ class FullyConnectedNet(object):
 
 
         for layer in range(self.num_layers - 2, -1, -1):
+            
+            if self.use_dropout:
+                 dscores = dropout_backward(dscores, 
+                                                caches['dropout' + str(layer+1)])
 
             if self.normalization:
                 dscores, dW, db, dgamma, dbeta = affine_batchnorm_relu_backward(
