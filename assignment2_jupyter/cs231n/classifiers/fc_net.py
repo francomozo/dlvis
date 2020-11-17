@@ -405,8 +405,6 @@ def affine_batchnorm_relu_forward(x, w, b, gamma, beta, bn_param):
     - cache: Object to give to the backward pass
     """
 
-    fc_cache, bn_cache, relu_cache = None, None, None #DUDA
-
     a, fc_cache = affine_forward(x, w, b)
     a, bn_cache = batchnorm_forward(a, gamma, beta, bn_param)
     out, relu_cache = relu_forward(a)
@@ -421,8 +419,6 @@ def affine_batchnorm_relu_backward(dout, cache):
     Backward pass for the affine-batchnorm-relu convenience layer
     """
     fc_cache, bn_cache, relu_cache = cache
-
-    da, dgamma, dbeta = None, None, None #DUDA
 
     da = relu_backward(dout, relu_cache)
     da, dgamma, dbeta = batchnorm_backward(da, bn_cache)
