@@ -613,17 +613,20 @@ def max_pool_forward_naive(x, pool_param):
     pool_height, pool_width = pool_param['pool_height'], pool_param['pool_width']
     S = pool_param['stride']
 
-    assert (H - HH) % S == 0, 'Incorrect Hout'
-    assert (W - WW) % S == 0, 'Incorrect Wout'
+    assert (H - pool_height) % S == 0, 'Incorrect Hout'
+    assert (W - pool_width) % S == 0, 'Incorrect Wout'
     
-    Hout = 1 + (H - pool_height) // stride
-    Wout = 1 + (W - pool_width) // stride
+    Hout = 1 + (H - pool_height) // S
+    Wout = 1 + (W - pool_width) // S
     
     out = np.zeros((N, C, Hout, Wout))
     
     for n in range(N): # para cada imagen
-        
-    
+        for i in range(Hout):
+            for j in range(Wout):
+                out[n, :, i, j] = np.max(
+                                        x[n, :, i*S:i*S+pool_height, j*S:j*S+pool_width],axis=(1,2)
+                                        )
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -649,8 +652,26 @@ def max_pool_backward_naive(dout, cache):
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    
+    x, pool_param = cache
+    pool_height, pool_width = pool_param['pool_height'], pool_param['pool_width']
+    S = pool_param['stride']
+    N, C, H, W = x.shape
+    
+    Hout = 1 + (H - pool_height) // S
+    Wout = 1 + (W - pool_width) // S
+    
+    
+    dx = np.zeros_like(x)
+    
+    for n in range(N):
+        for c in range(C):
+            for i in range(Hout):
+                for j in range(Wout):
+                    idx = np.argmax(x[n, c, i*S:i*S+pool_height, j*S:j*S+pool_width])
+                    # convierto indice a entrada en la submatriz
+                    idxi, idxj = np.unravel_index(idx, (pool_height, pool_width))
+                    dx[n, c, i*S+idxi, j*S+idxj] = dout[n, c, i, j]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
