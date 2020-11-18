@@ -493,7 +493,31 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    S, pad = conv_param['stride'], conv_param['pad']
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    
+    # chequeo correctas dim de salida:
+    assert (H + 2 * pad - HH) % S == 0, 'Incorrect Hout'
+    assert (W + 2 * pad - WW) % S == 0, 'Incorrect Wout'
+    
+    
+    Hout = 1 + (H + 2 * pad - HH) // S
+    Wout = 1 + (W + 2 * pad - WW) // S
+    
+    out = np.zeros((N, F, Hout, Wout))
+    
+    # padding sobre nuevo vector:
+    x_pad = np.pad(x, ((0, 0),(0, 0),(pad, pad),(pad, pad)), mode='constant')
+    
+    for n in range(N): # para cada imagen
+        for f in range(F): # para cada filtro
+            # recorro la imagen haciendo conv
+            for i in range(Hout):
+                for j in range(Wout):
+                    out[n, f, i, j] = np.sum(
+                                        x_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] * w[f, :, :, :]
+                                      ) + b[f]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -521,9 +545,38 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    # unpacking
+    x, w, b, conv_param = cache
+    S, pad = conv_param['stride'], conv_param['pad']
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
 
-    pass
-
+    Hout = 1 + (H + 2 * pad - HH) // S
+    Wout = 1 + (W + 2 * pad - WW) // S
+    
+    x_pad = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+    
+    dx_pad = np.zeros_like(x_pad)
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    
+    #dout.shape = N, F, Hout, Wout
+    #x.shape = N, C, H, W
+    for n in range(N): # para cada imagen
+        for f in range(F): # para cada filtro
+            db[f] += np.sum(dout[n, f, :, :]) # suma sobre todas las imagenes
+                                              # ya que loss = sum(loss_im_i)
+            # recorro la imagen haciendo las convs de backprop
+            for i in range(Hout):
+                for j in range(Wout):
+                    dw[f] += x_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] * dout[n, f, i, j]
+                    dx_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] += w[f] * dout[n, f, i, j]                   
+    
+    # remuevo padding
+    dx = dx_pad[:,:,pad:-pad,pad:-pad]    
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -556,8 +609,22 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    pool_height, pool_width = pool_param['pool_height'], pool_param['pool_width']
+    S = pool_param['stride']
 
+    assert (H - HH) % S == 0, 'Incorrect Hout'
+    assert (W - WW) % S == 0, 'Incorrect Wout'
+    
+    Hout = 1 + (H - pool_height) // stride
+    Wout = 1 + (W - pool_width) // stride
+    
+    out = np.zeros((N, C, Hout, Wout))
+    
+    for n in range(N): # para cada imagen
+        
+    
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
