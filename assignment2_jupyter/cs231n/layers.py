@@ -825,7 +825,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     N, C, H, W = x.shape
 
     x_ = reshape_volume(x, G)
-
+    
     # Step 1. m = 1 / N \sum x_i
     m = np.mean(x_, axis=0, keepdims=True)
 
@@ -848,11 +848,12 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     xn = xc * invv
 
     xn_ = undo_reshape(xn, G, N, C, H, W)
+    
     # Step 8. xg = xn * gamma
-    xgamma = xn_ * gamma[np.newaxis, :, np.newaxis, np.newaxis]
+    xgamma = xn_ * gamma
 
     # Step 9. out = xg + beta
-    out = xgamma + beta[np.newaxis, :, np.newaxis, np.newaxis]
+    out = xgamma + beta
 
     cache = (x, xc, vsqrt, v, invv, xn_, gamma, eps, G)
 
@@ -913,8 +914,9 @@ def spatial_groupnorm_backward(dout, cache):
     N, C, H, W = x.shape
 
     dout = reshape_volume(dout, G)
-    #dxn = reshape_volume(dxn_, G)
-
+    xn  = reshape_volume(xn, G)
+    
+    D = dout.shape[1]
     # BACKWARD PASS: Step-byStep
     # Step 9. out = xg + beta
     dxg = dout
@@ -949,7 +951,7 @@ def spatial_groupnorm_backward(dout, cache):
 
     dx = dx1 + dx2
 
-    #dx = undo_reshape(dx, G, N, C, H, W)
+    dx = undo_reshape(dx, G, N, C, H, W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
