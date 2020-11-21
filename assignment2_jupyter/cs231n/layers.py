@@ -755,6 +755,7 @@ def spatial_batchnorm_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     N, C, H, W = dout.shape
+
     dout = dout.transpose(0, 2, 3, 1).reshape(N*H*W, C)
 
     dx, dgamma, dbeta = batchnorm_backward(dout, cache)
@@ -803,12 +804,12 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # -------------------------------------------------------------
     def reshape_volume(volume, G):
         N, C, H, W = volume.shape
-        out = volume.transpose(0, 2, 3, 1).reshape(N, H*W, C)
+        out = volume.transpose(0, 2, 3, 1).reshape(N, H*W, C) # 0
 
         dim = C // G
-        out = out.reshape(N*dim, H*W, G)
-        out = out.reshape(N*dim, H*W*G)
-        out = np.transpose(out)
+        out = out.reshape(N*dim, H*W, G) # 1
+        out = out.reshape(N*dim, H*W*G) # 2
+        out = np.transpose(out) # 3
         return out
 
     def undo_reshape(volume, G, N, C, H, W):
@@ -824,38 +825,42 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
 
     N, C, H, W = x.shape
 
+    #print('x: ', x.shape)
     x_ = reshape_volume(x, G)
-    
+    #print('x_: ', x_.shape)
     # Step 1. m = 1 / N \sum x_i
     m = np.mean(x_, axis=0, keepdims=True)
-
+    #print('m: ' , m.shape)
     # Step 2. xc = x - m
     xc = x_ - m
-
+    #print('xc: ', xc.shape)
     # Step 3. xc2 = xc ^ 2
     xcsq = xc ** 2
-
+    #print('xcsq: ', xcsq.shape)
     # Step 4. v = 1 / N \sum xc2_i
     v = np.mean(xcsq, axis=0, keepdims=True)
-
+    #print('v: ', v.shape)
     # Step 5. vsq = sqrt(v + eps)
     vsqrt = np.sqrt(v + eps)
-
+    #print('vsqrt: ', vsqrt.shape)
     # Step 6. invv = 1 / vsq
     invv = 1.0 / vsqrt
-
+    #print('invv: ', invv.shape)
     # Step 7. xn = xc * invv
     xn = xc * invv
-
+    #print('xn: ', xn.shape)
     xn_ = undo_reshape(xn, G, N, C, H, W)
-    
+    #print('xn_: ', xn_.shape)
     # Step 8. xg = xn * gamma
     xgamma = xn_ * gamma
-
+    #print('xgama: ', xgamma.shape)
     # Step 9. out = xg + beta
     out = xgamma + beta
+    #print('out: ', out.shape)
 
-    cache = (x, xc, vsqrt, v, invv, xn_, gamma, eps, G)
+    gamma_ = gamma.reshape(C,)
+
+    cache = (x, xc, vsqrt, v, invv, xn, gamma_, eps, G)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -911,12 +916,14 @@ def spatial_groupnorm_backward(dout, cache):
 
     (x, xc, vsqrt, v, invv, xn, gamma, eps, G) = cache
 
-    N, C, H, W = x.shape
+    N_, C, H, W = x.shape
 
     dout = reshape_volume(dout, G)
-    xn  = reshape_volume(xn, G)
-    
+
+
+    N = dout.shape[0] # N y D de BN usual con input (N, D)
     D = dout.shape[1]
+
     # BACKWARD PASS: Step-byStep
     # Step 9. out = xg + beta
     dxg = dout
@@ -951,7 +958,8 @@ def spatial_groupnorm_backward(dout, cache):
 
     dx = dx1 + dx2
 
-    dx = undo_reshape(dx, G, N, C, H, W)
+    dx = undo_reshape(dx, G, N_, C, H, W)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
