@@ -13,7 +13,7 @@ git add --all
 
 echo "-------------- Making commit ---------------------------"
 obs="$1"
-git commit -m "$datetime $obs"
+git commit -m "|| $datetime || $obs ||"
 
 echo "------------ Pushing to server -------------------------"
 git push -u origin master
