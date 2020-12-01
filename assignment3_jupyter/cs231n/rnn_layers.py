@@ -36,7 +36,9 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    next_h = np.tanh(np.matmul(prev_h, Wh) + np.matmul(x, Wx) + b)
+
+    cache = (x, prev_h, Wx, Wh, b, next_h)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -69,7 +71,22 @@ def rnn_step_backward(dnext_h, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    (x, prev_h, Wx, Wh, b, next_h) = cache
+
+    N, H = dnext_h.shape
+
+    dtanh = 1 - np.square(next_h)                       # (N, H)
+
+    dprev_h = np.matmul(dnext_h * dtanh, Wh.T)          # (N, H) @ (H, N)
+
+    dx = np.matmul(dnext_h * dtanh, Wx.T)               # (N, H) @ (H, D)
+
+    dWx = np.matmul(x.T, dnext_h * dtanh)               # (D, N) @ (N, H)
+
+    dWh = np.matmul(prev_h.T, dnext_h * dtanh)          # (H, N) @ (N, H)
+
+    ones = np.ones((N,))
+    db = np.matmul(np.transpose(dnext_h * dtanh), ones) # (H, N) @ (N,)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -104,7 +121,20 @@ def rnn_forward(x, h0, Wx, Wh, b):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # unpacking de algunos valores
+    N, T, D = x.shape
+    _, H = h0.shape
+
+    # append del h0 al final para utilizar un solo for
+    h = np.zeros((N, T+1, H))
+    h[:,-1,:] = h0
+
+    cache = {}
+    for t in range(T):
+        h[:,t,:], cache[t] = rnn_step_forward(x[:,t,:], h[:,t-1,:], Wx, Wh, b)
+
+    # paso h a shape (N, T, H)
+    h = h[:,:-1,:]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -118,9 +148,9 @@ def rnn_backward(dh, cache):
     Compute the backward pass for a vanilla RNN over an entire sequence of data.
 
     Inputs:
-    - dh: Upstream gradients of all hidden states, of shape (N, T, H). 
-    
-    NOTE: 'dh' contains the upstream gradients produced by the 
+    - dh: Upstream gradients of all hidden states, of shape (N, T, H).
+
+    NOTE: 'dh' contains the upstream gradients produced by the
     individual loss functions at each timestep, *not* the gradients
     being passed between timesteps (which you'll have to compute yourself
     by calling rnn_step_backward in a loop).
@@ -140,8 +170,21 @@ def rnn_backward(dh, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, T, H = dh.shape
+    _, D = cache[0][0].shape # x con shape NxD
 
+    dx = np.zeros((N, T, D))
+    dWx = np.zeros((D, H))
+    dWh = np.zeros((H, H))
+    db = np.zeros((H,))
+    dh0 = 0
+
+    for t in reversed(range(T)):
+        dh_t = dh[:,t,:] + dh0
+        dx[:,t,:], dh0, dWx_t, dWh_t, db_t = rnn_step_backward(dh_t, cache[t])
+        dWx += dWx_t
+        dWh += dWh_t
+        db += db_t
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
