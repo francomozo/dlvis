@@ -1,3 +1,6 @@
 .ipynb_checkpoints
+#entregas/assignment3_jupyter/cs231n/datasets/coco_captioning
+#entregas/assignment3_jupyter/cs231n/datasets/imagenet_val_25.npz
+entregas/assignment3_jupyter/cs231n/datasets/*
 #.gitignore
 #toGit.sh
