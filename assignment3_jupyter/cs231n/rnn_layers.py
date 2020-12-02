@@ -322,7 +322,29 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, H = prev_h.shape
+
+    # (1)
+    a = np.matmul(x, Wx) + np.matmul(prev_h, Wh) + b
+
+    # (2)
+    # valores intermedios
+    ai = a[:, :H]
+    af = a[:, H:2*H]
+    ao = a[:, 2*H:3*H]
+    ag = a[:, 3*H:]
+
+    # (3)
+    i = sigmoid(ai)
+    f = sigmoid(af)
+    o = sigmoid(ao)
+    g = np.tanh(ag)
+
+    next_c = f * prev_c + i * g
+
+    next_h = o * np.tanh(next_c)
+
+    cache = (a, x, prev_h, prev_c, next_h, next_c, Wx, Wh, b, i, f, o, g)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -358,7 +380,39 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    a, x, prev_h, prev_c, next_h, next_c, Wx, Wh, b, i, f, o, g = cache 
+
+    N, H = dnext_h.shape
+
+    ai = a[:, :H]
+    af = a[:, H:2*H]
+    ao = a[:, 2*H:3*H]
+    ag = a[:, 3*H:]
+
+    # (3)
+    dc = dnext_h * o * (1 - np.square(np.tanh(next_c)))
+    dc += dnext_c
+
+    di = dc * g
+    df = dc * prev_c
+    do = dnext_h * np.tanh(next_c)
+    dg = dc * i
+
+    # (2)
+    dai = di * sigmoid(ai) * (1 - sigmoid(ai))
+    daf = df * sigmoid(af) * (1 - sigmoid(af))
+    dao = do * sigmoid(ao) * (1 - sigmoid(ao))
+    dag = dg * (1 - np.square(np.tanh(ag)))
+
+    da = np.hstack((dai, daf, dao, dag))
+
+    # (1)
+    dx      = np.matmul(da, np.transpose(Wx))
+    dprev_h = np.matmul(da, np.transpose(Wh))
+    dprev_c = dc * f
+    dWx     = np.matmul(np.transpose(x), da)
+    dWh     = np.matmul(np.transpose(prev_h), da)
+    db      = np.matmul(da, np.ones((4*H)))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
