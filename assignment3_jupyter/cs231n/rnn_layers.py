@@ -215,7 +215,22 @@ def word_embedding_forward(x, W):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Word embedding es una forma de respresentar palabras en vectores. La idea es
+    # crear un vector para cada palabra de forma que los elementos parecidos tengan
+    # vectores cercanos (Por ejemplo, Uruguay con Canada (ambos paises), o perro
+    # y gato (ambos animales con estructura parecida)).
+    # Estos vectores se crean utilizando la matriz "W", que para cada palabra en el
+    # vocabulaio (largo V), tiene un vector de largo D, por eso W.shape = (V, T).
+    # Cada entrada n del minibatch de tamaño N, es una oración representada por un
+    # vector de tamaño T que indican las posiciones de las palabras en el vocabulario
+    # de largo V (por eso 0 <= idx <= V).
+    # Usando array indexing de Numpy, W[x] devuelve los word vectors de cada entrada
+    # n en la matriz W
+
+    out = W[x]
+
+    cache = (x, W)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -248,7 +263,14 @@ def word_embedding_backward(dout, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # me ayude con esta respuesta
+    # https://www.reddit.com/r/cs231n/comments/48ndpi/problem_in_understanding_of_word_embedding/
+
+    x, W = cache
+
+    dW = np.zeros_like(W)
+
+    np.add.at(dW, x, dout)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
