@@ -160,7 +160,10 @@ class CaptioningRNN(object):
         word_embed, cache_we = word_embedding_forward(captions_in, W_embed)
 
         # (3)
-        h, cache_rnn = rnn_forward(word_embed, h0, Wx, Wh, b)
+        if self.cell_type == "rnn":
+            h, cache_rnn = rnn_forward(word_embed, h0, Wx, Wh, b)
+        else:
+            h, cache_lstm = lstm_forward(word_embed, h0, Wx, Wh, b)
 
         # (4)
         y, cache_temp_affine = temporal_affine_forward(h, W_vocab, b_vocab)
@@ -174,7 +177,10 @@ class CaptioningRNN(object):
         dh, dW_vocab, db_vocab = temporal_affine_backward(dout, cache_temp_affine)
 
         # (3 backward)
-        dout, dh0, dWx, dWh, db = rnn_backward(dh, cache_rnn)
+        if self.cell_type == "rnn":
+            dout, dh0, dWx, dWh, db = rnn_backward(dh, cache_rnn)
+        else:
+            dout, dh0, dWx, dWh, db = lstm_backward(dh, cache_lstm)
 
         # (2 backward)
         dW_embed = word_embedding_backward(dout, cache_we)
@@ -265,10 +271,14 @@ class CaptioningRNN(object):
         # (1): Caso particular con <START>
         x = np.ones((N, W)) * W_embed[self._start]
 
+        c = np.zeros_like(h)
 
         for t in range(max_length):
             # (2)
-            next_h, _ = rnn_step_forward(x, h, Wx, Wh, b)
+            if self.cell_type == "rnn":
+                next_h, _ = rnn_step_forward(x, h, Wx, Wh, b)
+            else:
+                next_h, next_c, _ = lstm_step_forward(x, h, c, Wx, Wh, b)
 
             # (3)
             scores, _ = affine_forward(next_h, W_vocab, b_vocab)
@@ -280,7 +290,7 @@ class CaptioningRNN(object):
             x = W_embed[captions[:, t]]
 
             h = next_h
-
+            c = next_c
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
