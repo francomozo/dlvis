@@ -34,11 +34,23 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    scores = model.eval(X)
+    # lectura de saliency maps para realizar esta parte:
+    # https://medium.com/datadriveninvestor/visualizing-neural-networks-using-saliency-maps-in-pytorch-289d8e244ab4
 
-    scores.gather(1, y.view(-1, 1)).squeeze()
+    # forward pass
+    scores = model(X)
 
+    # los maximos scores para cada imagen
+    scores_max = scores.gather(1, y.view(-1, 1)).squeeze()
 
+    # backward pass en el grafo computacional para calcular los gradientes de scores_max
+    # respecto a las imagenes
+    scores_max.backward(torch.ones(y.shape[0]))
+
+    # para obtener el saliency map para cada pixel (i, j) se toma el maximo sobre los 3
+    # canales RGB
+    dX = X.grad
+    saliency, _ = torch.max(dX.abs(),dim=1)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -80,7 +92,30 @@ def make_fooling_image(X, target_y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    for i in range(100):
+
+        # forward pass
+        scores = model(X_fooling)
+
+        # en index esta la clase
+        scores_max, index = scores.max(dim=1)
+
+        # si clasifique bien termine
+        if index[0] == target_y:
+            break
+
+        # hago backprop y calculo gradientes
+        target_score = scores[:,target_y]
+
+        target_score.backward()
+
+        dx = X_fooling.grad
+
+        # actualizo la imagen con normalizacion del gradiente segun letra
+        with torch.no_grad():
+            X_fooling += learning_rate * (dx / dx.norm())
+
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -98,7 +133,25 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     ########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    img = img.requires_grad_()
+
+    # forward pass
+    scores = model(img)
+
+    # score de la red para la clase "target_y" de la imagen "img"
+    s = scores[0,target_y]
+
+    loss = s - l2_reg * (torch.norm(img) * torch.norm(img))#torch.sum(img * img)
+
+    # backprop para obtener los gradientes de img respecto a loss
+    loss.backward()
+
+    dx = img.grad
+
+    with torch.no_grad():
+        img += learning_rate * dx
+
+    img.grad.zero_()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
