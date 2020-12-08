@@ -8,9 +8,9 @@ import numpy as np
 
 from .image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
 
-dtype = torch.FloatTensor
+#dtype = torch.FloatTensor
 # Uncomment out the following line if you're on a machine with a GPU set up for PyTorch!
-#dtype = torch.cuda.FloatTensor
+dtype = torch.cuda.FloatTensor
 def content_loss(content_weight, content_current, content_original):
     """
     Compute the content loss for style transfer.
@@ -26,7 +26,13 @@ def content_loss(content_weight, content_current, content_original):
     """
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    _, C_l, H_l, W_l = content_current.size()
+
+    content_current = torch.reshape(content_current, (1, C_l, H_l * W_l))
+    content_original = torch.reshape(content_original, (1, C_l, H_l * W_l))
+
+    return content_weight * torch.sum((content_current - content_original) ** 2)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -45,8 +51,42 @@ def gram_matrix(features, normalize=True):
       (optionally normalized) Gram matrices for the N input images.
     """
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    '''
+    N, C, H, W = features.size()
+    features = features.view(N, C, H * W)
 
-    pass
+    if normalize:
+        return torch.bmm(features, torch.transpose(features, 1, 2)) / (H * W * C)
+
+    else:
+        return torch.bmm(features, torch.transpose(features, 1, 2))
+
+    '''
+
+    N, C, H, W = features.size()
+
+    features = features.view(N, C, H * W)
+
+    #gram = torch.zeros([N, C, C]) # , dtype=dtype)
+
+    # no encontre una mejor forma que con 2 loops
+    #for i in range(C):
+    #    for j in range(C):
+    #        gram[:, i, j] = torch.sum(
+    #            features[:, i, :] * features[:, i, :], dim=1
+    #        )
+
+    # haciendo transpuesta es simplemente una multipl de matrices
+    #for i in range(N):
+    #    gram[i, :] = torch.mm(features[i, :], features[i, :].t() )
+
+    # hay una funcion de pytorch que me soluciona sobre un batch
+    gram = torch.bmm(features, torch.transpose(features, 1, 2))
+
+    if normalize:
+        gram = gram / ( H * W * C )
+
+    return gram
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
