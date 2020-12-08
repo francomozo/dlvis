@@ -51,23 +51,10 @@ def gram_matrix(features, normalize=True):
       (optionally normalized) Gram matrices for the N input images.
     """
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    '''
-    N, C, H, W = features.size()
-    features = features.view(N, C, H * W)
-
-    if normalize:
-        return torch.bmm(features, torch.transpose(features, 1, 2)) / (H * W * C)
-
-    else:
-        return torch.bmm(features, torch.transpose(features, 1, 2))
-
-    '''
 
     N, C, H, W = features.size()
 
     features = features.view(N, C, H * W)
-
-    #gram = torch.zeros([N, C, C]) # , dtype=dtype)
 
     # no encontre una mejor forma que con 2 loops
     #for i in range(C):
@@ -113,7 +100,16 @@ def style_loss(feats, style_layers, style_targets, style_weights):
     # not be very much code (~5 lines). You will need to use your gram_matrix function.
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    style_loss = 0
+
+    for i in range(len(style_layers)):
+        layer_idx = style_layers[i]
+
+        style_loss += style_weights[i] * torch.sum(
+            (gram_matrix(feats[layer_idx]) - style_targets[i]) ** 2
+            )
+
+    return style_loss
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -132,9 +128,34 @@ def tv_loss(img, tv_weight):
     # Your implementation should be vectorized and not require any loops!
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # creo matrices auxiliares operando sobre img para no usar loops
+    #img_i = img[:, :, :-1, :]
+    #img_iplus1 = img[:, :, 1:, :]
 
+    # contiene la matriz diferencia con las filas x_{i+1} - x_i
+    #img_diff = img_iplus1 - img_i
+
+    # ahora preciso elevar al cuadrado termino a termino y sumar sobre todos los canales
+    #tv_loss_term1 = torch.sum(img_diff ** 2)
+
+    # haciendo transpuesta y mismo procedimiento obtengo el segundo termino
+    #transposed_img = torch.transpose(img, 1, 2)
+
+    #img_j = transposed_img[:, :, :-1, :]
+    #img_jplus1 = transposed_img[:, :, 1:, :]
+
+    #img_diffj = img_jplus1 - img_j
+    #tv_loss_term2 = torch.sum(img_diffj ** 2)
+    # algo me esta funcionando mal con la transpuesta (creo)
+    # y se puede hacer bien indexando segun j
+
+    tv_loss_term1 = torch.sum((img[:, :, 1:, :] - img[:, :, :-1, :]) **2)
+    tv_loss_term2 = torch.sum((img[:, :, :, 1:] - img[:, :, :, :-1]) **2)
+
+    return tv_weight * (tv_loss_term1 + tv_loss_term2)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
+
 def preprocess(img, size=512):
     """ Preprocesses a PIL JPG Image object to become a Pytorch tensor
         that is ready to be used as an input into the CNN model.
